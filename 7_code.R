@@ -13,7 +13,7 @@ library(ggplot2)
 library(reshape2)
 library(corrplot)
 library(gtsummary)
-file_path <- "C:/Users/思/Desktop/Dataset/9-china diabetes.csv"  # 替换为你的CSV文件路径
+file_path <- "C:/Users/思/Desktop/Dataset/7-china diabetes.csv"  # 替换为你的CSV文件路径
 clinical_data <- read_csv(file_path)
 print(head(clinical_data))
 
@@ -25,6 +25,45 @@ missing_ratios <- sapply(clinical_data, function(x) mean(is.na(x)))
 print(missing_ratios)
 summary(clinical_data)
 
+# data processing
+clinical_data$family_histroy <- as.factor(clinical_data$family_histroy)
+clinical_data$Gender <- as.factor(clinical_data$Gender)
+clinical_data$smoking <- as.factor(clinical_data$smoking)
+clinical_data$drinking <- as.factor(clinical_data$drinking)
+clinical_data$Diabetes <- as.factor(clinical_data$Diabetes)
+
+clinical_data <- clinical_data %>%
+  mutate(
+    Gender = case_when(
+      Gender == 1 ~ "Male",
+      Gender == 2 ~ "Female",
+      TRUE ~ as.character(Gender) 
+    ),
+    smoking = case_when(
+      smoking == 1 ~ "Current smoker",
+      smoking == 2 ~ "Ever smoker",
+      smoking == 3 ~ "Never smoker",
+      TRUE ~ as.character(smoking)
+    ),
+    drinking = case_when(
+      drinking == 1 ~ "Current drinker",
+      drinking == 2 ~ "Ever drinker",
+      drinking == 3 ~ "Never drinker",
+      TRUE ~ as.character(drinking)
+    ),
+    family_histroy = case_when(
+      family_histroy == 1 ~ "Yes",
+      family_histroy == 0 ~ "No",
+      TRUE ~ as.character(family_histroy)
+    ),
+    Diabetes = case_when(
+      Diabetes == 1 ~ "Yes",
+      Diabetes == 0 ~ "No",
+      TRUE ~ as.character(Diabetes)
+    )
+  )
+head(clinical_data)
+
 ###Categorical feature
 features <- c("Gender",
               "smoking",
@@ -32,16 +71,18 @@ features <- c("Gender",
               "family_histroy",
               "Diabetes"
 )
-create_bar_plot <- function(feature) {
+titles <- c("Gender", "Smoking Status", "Drinking Status", "Family History of Diabetes", "Diabetes")
+create_bar_plot <- function(feature, title) {
   ggplot(clinical_data, aes_string(x = feature)) +
-    geom_bar(fill = "purple", stat = "count")+  # 创建填充颜色为紫色的柱状图
-    geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 3) + 
-    labs(title = feature, x = NULL, y = "Count") +
+    geom_bar(fill = "purple", stat = "count") +  
+    geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 3) +
+    labs(title = title, x = NULL, y = "Count") +
     theme_minimal() +
     theme(plot.title = element_text(size = 16))
 }
-plot_list <- lapply(features, create_bar_plot)
-plot_grid(plotlist = plot_list, ncol = 5)
+plot_list <- mapply(create_bar_plot, features, titles, SIMPLIFY = FALSE)
+
+plot_grid(plotlist = plot_list, ncol = 3)
 
 ###Continuous feature
 # age
@@ -165,8 +206,7 @@ LDL_distribution <- ggplot(clinical_data, aes(x = LDL)) +
   geom_histogram(binwidth = 5, fill = "purple", color = "black", alpha = 0.5) +
   geom_density(aes(y = ..count.. * 5), color = "black") +
   labs(title = "LDL Distribution", x = "LDL", y = "Count") +
-  theme_minimal()+
-  scale_x_continuous(limits = c(min(clinical_data$LDL, na.rm = TRUE) - 1, max(clinical_data$LDL, na.rm = TRUE) + 1)) 
+  theme_minimal()
 
 LDL_boxplot <- ggplot(clinical_data, aes(x = "", y = LDL)) +
   geom_boxplot(fill = "purple", alpha = 0.5) +
@@ -180,8 +220,7 @@ ALT_distribution <- ggplot(clinical_data, aes(x = ALT)) +
   geom_histogram(binwidth = 5, fill = "purple", color = "black", alpha = 0.5) +
   geom_density(aes(y = ..count.. * 5), color = "black") +
   labs(title = "ALT Distribution", x = "ALT", y = "Count") +
-  theme_minimal()+
-  scale_x_continuous(limits = c(min(clinical_data$ALT, na.rm = TRUE) - 1, max(clinical_data$ALT, na.rm = TRUE) + 1)) 
+  theme_minimal()
 
 ALT_boxplot <- ggplot(clinical_data, aes(x = "", y = ALT)) +
   geom_boxplot(fill = "purple", alpha = 0.5) +
@@ -195,8 +234,7 @@ BUN_distribution <- ggplot(clinical_data, aes(x = BUN)) +
   geom_histogram(binwidth = 5, fill = "purple", color = "black", alpha = 0.5) +
   geom_density(aes(y = ..count.. * 5), color = "black") +
   labs(title = "BUN Distribution", x = "BUN", y = "Count") +
-  theme_minimal()+
-  scale_x_continuous(limits = c(min(clinical_data$BUN, na.rm = TRUE) - 1, max(clinical_data$BUN, na.rm = TRUE) + 1)) 
+  theme_minimal()
 
 BUN_boxplot <- ggplot(clinical_data, aes(x = "", y = BUN)) +
   geom_boxplot(fill = "purple", alpha = 0.5) +
@@ -215,8 +253,7 @@ CCR_distribution <- ggplot(clinical_data, aes(x = CCR)) +
 CCR_boxplot <- ggplot(clinical_data, aes(x = "", y = CCR)) +
   geom_boxplot(fill = "purple", alpha = 0.5) +
   labs(title = "CCR Boxplot", x = "", y = "CCR") +
-  theme_minimal()+
-  scale_x_continuous(limits = c(min(clinical_data$CCR, na.rm = TRUE) - 1, max(clinical_data$CCR, na.rm = TRUE) + 1))
+  theme_minimal()
 
 plot_grid(CCR_distribution, CCR_boxplot, ncol = 2)
 
@@ -225,8 +262,7 @@ FFPG_distribution <- ggplot(clinical_data, aes(x = FFPG)) +
   geom_histogram(binwidth = 5, fill = "purple", color = "black", alpha = 0.5) +
   geom_density(aes(y = ..count.. * 5), color = "black") +
   labs(title = "FFPG Distribution", x = "FFPG", y = "Count") +
-  theme_minimal()+
-  scale_x_continuous(limits = c(min(clinical_data$FFPG, na.rm = TRUE) - 1, max(clinical_data$FFPG, na.rm = TRUE) + 1)) 
+  theme_minimal()
 
 FFPG_boxplot <- ggplot(clinical_data, aes(x = "", y = FFPG)) +
   geom_boxplot(fill = "purple", alpha = 0.5) +
@@ -237,19 +273,20 @@ FFPG_boxplot <- ggplot(clinical_data, aes(x = "", y = FFPG)) +
 plot_grid(age_distribution, age_boxplot,
           bmi_distribution, bmi_boxplot,
           SBP_distribution, SBP_boxplot,
-          DBP_distribution, DBP_boxplot,
-          FPG_distribution, FPG_boxplot,
+          DBP_distribution, DBP_boxplot, ncol = 4)
+
+plot_grid(FPG_distribution, FPG_boxplot,
           Chol_distribution, Chol_boxplot,
           Tri_distribution, Tri_boxplot,
-          HDL_distribution, HDL_boxplot,
-          LDL_distribution, LDL_boxplot,
+          HDL_distribution, HDL_boxplot,ncol = 4)
+
+plot_grid(LDL_distribution, LDL_boxplot,
           ALT_distribution, ALT_boxplot,
           BUN_distribution, BUN_boxplot,
-          CCR_distribution, CCR_boxplot, 
-          FFPG_distribution, FFPG_boxplot, ncol = 6)
+          CCR_distribution, CCR_boxplot,
+          FFPG_distribution, FFPG_boxplot, ncol = 4)
 
-# data processing
-clinical_data$family_histroy <- as.factor(clinical_data$family_histroy)
+
 
 
 
